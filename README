@@ -1,0 +1,5 @@
+simulbaud simulates baud rates by delaying output.
+
+Useful when for some reason waiting to delay console output.
+
+At the moment uses kqueue i.e. works only on BSD flavors.
