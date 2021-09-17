@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <termios.h>
 
 static int				 pty_fd;
 static char				*inbuf;
@@ -84,10 +85,8 @@ read_pty(struct evsrc *es, void *data)
 int
 read_timer(struct evsrc *es, void *data)
 {
-	size_t				 i;
-	int				 *per_frame = (int *) data;
+	int				 i = *((int *) data);
 
-	i = *per_frame;
 	while (i-- && inbuf_pos < inbuf_sz)
 		putchar(inbuf[inbuf_pos++]);
 	fflush(stdout);
@@ -111,11 +110,20 @@ main(int argc, char *argv[])
 	double				 framerate_ms;
 	int				 per_frame;
 	int				 timer_ms;
+	struct termios			 tp, old_tp;
 
 	if (argc < 2) {
 		fprintf(stderr, "usage: %s baudrate\n", argv[0]);
 		return 1;
 	}
+
+	tcgetattr(0, &tp);
+	tcgetattr(0, &old_tp);
+	tp.c_lflag &= ~ICANON;
+	tp.c_lflag &= ~ISIG;
+	tp.c_lflag &= ~ECHO;
+	tp.c_iflag |= IXON;
+	tcsetattr(0, TCSANOW, &tp);
 
 	bits_per_s = atoi(argv[1]);
 	if (bits_per_s < 150 || bits_per_s > 200000) {
@@ -170,7 +178,8 @@ main(int argc, char *argv[])
 	for (;;)
 		if (event_dispatch(ev) == -1)
 			err(1, "event_dispatch");
-	
+
+	tcsetattr(0, TCSANOW, &old_tp);
 	event_free(ev);
 	return 0;
 }
