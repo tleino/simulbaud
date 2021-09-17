@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <termios.h>
+#include <ctype.h>
 
 static int				 pty_fd;
 static char				*inbuf;
@@ -33,6 +34,7 @@ static size_t				 inbuf_alloc;
 static size_t				 inbuf_sz;
 static size_t				 inbuf_pos;
 static size_t				 line_col;
+static int				 stopped;
 
 int
 read_stdin(struct evsrc *es, void *data)
@@ -48,7 +50,17 @@ read_stdin(struct evsrc *es, void *data)
 		exit(0);
 	else if (c == '\n' || c == '\r')
 		line_col = 0;
-	else
+	else if (c == 0x03) {	/* ^C */
+		tcflush(pty_fd, TCIFLUSH);
+		inbuf_sz = 0;
+		inbuf_pos = 0;
+	} else if (c == 0x13) {	/* ^S */
+		stopped = 1;
+		return 0;
+	} else if (c == 0x11) {	/* ^Q */
+		stopped = 0;
+		return 0;
+	} else if (!iscntrl(c))
 		line_col++;
 
 	write(pty_fd, &c, 1);
@@ -87,6 +99,9 @@ read_timer(struct evsrc *es, void *data)
 {
 	int				 i = *((int *) data);
 
+	if (stopped)
+		return 0;
+
 	while (i-- && inbuf_pos < inbuf_sz)
 		putchar(inbuf[inbuf_pos++]);
 	fflush(stdout);
@@ -122,7 +137,7 @@ main(int argc, char *argv[])
 	tp.c_lflag &= ~ICANON;
 	tp.c_lflag &= ~ISIG;
 	tp.c_lflag &= ~ECHO;
-	tp.c_iflag |= IXON;
+	tp.c_iflag &= ~IXON;
 	tcsetattr(0, TCSANOW, &tp);
 
 	bits_per_s = atoi(argv[1]);
