@@ -31,18 +31,26 @@ static char				*inbuf;
 static size_t				 inbuf_alloc;
 static size_t				 inbuf_sz;
 static size_t				 inbuf_pos;
+static size_t				 line_col;
 
 int
 read_stdin(struct evsrc *es, void *data)
 {
-	char				 buf[4096];
+	char				 c;
 	ssize_t				 n;
 
-	n = read(0, buf, sizeof(buf));
+	n = read(0, &c, 1);
 	if (n <= 0)
 		return -1;
 
-	write(pty_fd, buf, n);
+	if (c == '~' && line_col == 0)
+		exit(0);
+	else if (c == '\n' || c == '\r')
+		line_col = 0;
+	else
+		line_col++;
+
+	write(pty_fd, &c, 1);
 	return 0;
 }
 
@@ -123,7 +131,8 @@ main(int argc, char *argv[])
 	per_frame = (int) (framerate_ms/ms);
 	if (per_frame == 0)
 		per_frame = 1;
-	printf("Writing %d characters every %d ms.\n", per_frame, timer_ms);
+	printf("Escape character is: ~\r\n");
+	printf("Writing %d characters every %d ms.\r\n", per_frame, timer_ms);
 
 	setlocale(LC_ALL, "");
 
