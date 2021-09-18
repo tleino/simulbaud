@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <ctype.h>
+#include <sys/ioctl.h>
 
 static int				 pty_fd;
 static char				*inbuf;
@@ -126,11 +127,15 @@ main(int argc, char *argv[])
 	int				 per_frame;
 	int				 timer_ms;
 	struct termios			 tp, old_tp;
+	struct winsize			 ws;
 
 	if (argc < 2) {
 		fprintf(stderr, "usage: %s baudrate\n", argv[0]);
 		return 1;
 	}
+
+	if (ioctl(1, TIOCGWINSZ, &ws) == -1)
+		err(1, "ioctl TIOCGWINSZ");
 
 	tcgetattr(0, &tp);
 	tcgetattr(0, &old_tp);
@@ -164,6 +169,9 @@ main(int argc, char *argv[])
 		err(1, "forkpty");
 	if (pid == 0)
 		execl("/bin/sh", "/bin/sh", NULL);
+
+	if (ioctl(pty_fd, TIOCSWINSZ, &ws) == -1)
+		err(1, "ioctl TIOCSWINSZ");
 
 	ev = event_create();
 	if (ev == NULL)
