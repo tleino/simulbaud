@@ -1,5 +1,12 @@
-simulbaud simulates baud rates by delaying output.
+Simulbaud simulates baud rates for text output. It launches a new
+instances of your shell and delays all output. 
 
-Useful when for some reason waiting to delay console output.
+It is useful when for some reason the user would want to delay the
+output. For instance, it could be useful when wanting to see how the
+text is drawn in fancy text user interface programs, or it could be
+used for remembering or for demoing the speed of text-based Internet
+and mainframe connections as it was back in the 1970s, 1980s or 1990s.
 
-At the moment uses kqueue i.e. works only on BSD flavors.
+At the moment Simulbaud uses kqueue i.e. works only on BSD flavors.
+You could also compile it with a suitable kqueue wrapper for Linux, or
+whatever.

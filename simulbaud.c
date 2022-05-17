@@ -128,6 +128,7 @@ main(int argc, char *argv[])
 	int				 timer_ms;
 	struct termios			 tp, old_tp;
 	struct winsize			 ws;
+	char				*shell;
 
 	if (argc < 2) {
 		fprintf(stderr, "usage: %s baudrate\n", argv[0]);
@@ -164,11 +165,15 @@ main(int argc, char *argv[])
 
 	setlocale(LC_ALL, "");
 
+	shell = getenv("SHELL");
+	if (shell == NULL)
+		shell = "/bin/sh";
+
 	pid = forkpty(&pty_fd, NULL, NULL, NULL);
 	if (pid < 0)
 		err(1, "forkpty");
 	if (pid == 0)
-		execl("/bin/sh", "/bin/sh", NULL);
+		execl(shell, shell, NULL);
 
 	if (ioctl(pty_fd, TIOCSWINSZ, &ws) == -1)
 		err(1, "ioctl TIOCSWINSZ");
